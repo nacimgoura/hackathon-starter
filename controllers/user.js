@@ -14,7 +14,7 @@ exports.getLogin = (req, res) => {
   if (req.user) {
     return res.redirect('/');
   }
-  res.render('account/login', {
+  return res.render('account/login', {
     title: 'Login'
   });
 };
@@ -44,7 +44,7 @@ exports.postLogin = (req, res, next) => {
     req.logIn(user, (err) => {
       if (err) { return next(err); }
       req.flash('success', { msg: 'Success! You are logged in.' });
-      res.redirect(req.session.returnTo || '/');
+      return res.redirect(req.session.returnTo || '/');
     });
   })(req, res, next);
 };
@@ -58,7 +58,7 @@ exports.logout = (req, res) => {
   req.session.destroy((err) => {
     if (err) console.log('Error : Failed to destroy the session during logout.', err);
     req.user = null;
-    res.redirect('/');
+    return res.redirect('/');
   });
 };
 
@@ -70,7 +70,7 @@ exports.getSignup = (req, res) => {
   if (req.user) {
     return res.redirect('/');
   }
-  res.render('account/signup', {
+  return res.render('account/signup', {
     title: 'Create Account'
   });
 };
@@ -109,7 +109,7 @@ exports.postSignup = (req, res, next) => {
         if (err) {
           return next(err);
         }
-        res.redirect('/');
+        return res.redirect('/');
       });
     });
   });
@@ -119,11 +119,9 @@ exports.postSignup = (req, res, next) => {
  * GET /account
  * Profile page.
  */
-exports.getAccount = (req, res) => {
-  res.render('account/profile', {
-    title: 'Account Management'
-  });
-};
+exports.getAccount = (req, res) => res.render('account/profile', {
+  title: 'Account Management'
+});
 
 /**
  * POST /account/profile
@@ -156,7 +154,7 @@ exports.postUpdateProfile = (req, res, next) => {
         return next(err);
       }
       req.flash('success', { msg: 'Profile information has been updated.' });
-      res.redirect('/account');
+      return res.redirect('/account');
     });
   });
 };
@@ -182,7 +180,7 @@ exports.postUpdatePassword = (req, res, next) => {
     user.save((err) => {
       if (err) { return next(err); }
       req.flash('success', { msg: 'Password has been changed.' });
-      res.redirect('/account');
+      return res.redirect('/account');
     });
   });
 };
@@ -196,7 +194,7 @@ exports.postDeleteAccount = (req, res, next) => {
     if (err) { return next(err); }
     req.logout();
     req.flash('info', { msg: 'Your account has been deleted.' });
-    res.redirect('/');
+    return res.redirect('/');
   });
 };
 
@@ -213,7 +211,7 @@ exports.getOauthUnlink = (req, res, next) => {
     user.save((err) => {
       if (err) { return next(err); }
       req.flash('info', { msg: `${provider} account has been unlinked.` });
-      res.redirect('/account');
+      return res.redirect('/account');
     });
   });
 };
@@ -235,7 +233,7 @@ exports.getReset = (req, res, next) => {
         req.flash('errors', { msg: 'Password reset token is invalid or has expired.' });
         return res.redirect('/forgot');
       }
-      res.render('account/reset', {
+      return res.render('account/reset', {
         title: 'Password Reset'
       });
     });
@@ -276,7 +274,7 @@ exports.postReset = (req, res, next) => {
         }));
       });
 
-  const sendResetPasswordEmail = (user) => {
+  const sendResetPasswordEmail = async (user) => {
     if (!user) { return; }
     const transporter = nodemailer.createTransport({
       service: 'SendGrid',
@@ -291,10 +289,8 @@ exports.postReset = (req, res, next) => {
       subject: 'Your Hackathon Starter password has been changed',
       text: `Hello,\n\nThis is a confirmation that the password for your account ${user.email} has just been changed.\n`
     };
-    return transporter.sendMail(mailOptions)
-      .then(() => {
-        req.flash('success', { msg: 'Success! Your password has been changed.' });
-      });
+    await transporter.sendMail(mailOptions);
+    req.flash('success', { msg: 'Success! Your password has been changed.' });
   };
 
   resetPassword()
@@ -311,7 +307,7 @@ exports.getForgot = (req, res) => {
   if (req.isAuthenticated()) {
     return res.redirect('/');
   }
-  res.render('account/forgot', {
+  return res.render('account/forgot', {
     title: 'Forgot Password'
   });
 };
