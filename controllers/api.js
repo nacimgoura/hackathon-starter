@@ -1,4 +1,4 @@
-const bluebird = require('bluebird');
+const util = require('util');
 const axios = require('axios');
 const cheerio = require('cheerio');
 const graph = require('fbgraph');
@@ -12,8 +12,8 @@ const Linkedin = require('node-linkedin')(process.env.LINKEDIN_ID, process.env.L
 const clockwork = require('clockwork')({ key: process.env.CLOCKWORK_KEY });
 const paypal = require('paypal-rest-sdk');
 const lob = require('lob')(process.env.LOB_KEY);
-const ig = bluebird.promisifyAll(require('instagram-node').instagram());
-const foursquare = require('node-foursquare')({
+const instagram = require('instagram-node').instagram();
+const { Venues, Users } = require('node-foursquare')({
   secrets: {
     clientId: process.env.FOURSQUARE_ID,
     clientSecret: process.env.FOURSQUARE_SECRET,
@@ -24,9 +24,6 @@ const foursquare = require('node-foursquare')({
     version: 20140806,
   }
 });
-
-foursquare.Venues = bluebird.promisifyAll(foursquare.Venues);
-foursquare.Users = bluebird.promisifyAll(foursquare.Users);
 
 /**
  * GET /api
@@ -43,9 +40,12 @@ exports.getApi = (req, res) => res.render('api/index', {
 exports.getFoursquare = async (req, res, next) => {
   const token = req.user.tokens.find(token => token.kind === 'foursquare');
   try {
-    const trendingVenues = await foursquare.Venues.getTrendingAsync('40.7222756', '-74.0022724', { limit: 50 }, token.accessToken);
-    const venueDetail = await foursquare.Venues.getVenueAsync('49da74aef964a5208b5e1fe3', token.accessToken);
-    const userCheckins = await foursquare.Users.getCheckinsAsync('self', null, token.accessToken);
+    const getTrendingAsync = util.promisify(Venues.getTrending);
+    const getVenueAsync = util.promisify(Venues.getVenue);
+    const getCheckinsAsync = util.promisify(Users.getCheckins);
+    const trendingVenues = await getTrendingAsync('40.7222756', '-74.0022724', { limit: 50 }, token.accessToken);
+    const venueDetail = await getVenueAsync('49da74aef964a5208b5e1fe3', token.accessToken);
+    const userCheckins = await getCheckinsAsync('self', null, token.accessToken);
     return res.render('api/foursquare', {
       title: 'Foursquare API',
       trendingVenues,
@@ -309,6 +309,7 @@ exports.getSteam = async (req, res, next) => {
       }
       return data.response;
     }
+    return null;
   };
 
   const getPlayerSummaries = async () => {
@@ -467,26 +468,29 @@ exports.getLinkedin = (req, res, next) => {
  * GET /api/instagram
  * Instagram API example.
  */
-exports.getInstagram = (req, res, next) => {
+exports.getInstagram = async (req, res, next) => {
   const token = req.user.tokens.find(token => token.kind === 'instagram');
-  ig.use({ client_id: process.env.INSTAGRAM_ID, client_secret: process.env.INSTAGRAM_SECRET });
-  ig.use({ access_token: token.accessToken });
-  Promise.all([
-    ig.user_searchAsync('richellemead'),
-    ig.userAsync('175948269'),
-    ig.media_popularAsync(),
-    ig.user_self_media_recentAsync()
-  ])
-    .then(([searchByUsername, searchByUserId, popularImages, myRecentMedia]) => {
-      res.render('api/instagram', {
-        title: 'Instagram API',
-        usernames: searchByUsername,
-        userById: searchByUserId,
-        popularImages,
-        myRecentMedia
-      });
-    })
-    .catch(next);
+  instagram.use({ client_id: process.env.INSTAGRAM_ID, client_secret: process.env.INSTAGRAM_SECRET });
+  instagram.use({ access_token: token.accessToken });
+  try {
+    const userSearchAsync = util.promisify(instagram.user_search);
+    const userAsync = util.promisify(instagram.user);
+    const mediaPopularAsync = util.promisify(instagram.media_popular);
+    const userSelfMediaRecentAsync = util.promisify(instagram.user_self_media_recent);
+    const searchByUsername = await userSearchAsync('richellemead');
+    const searchByUserId = await userAsync('175948269');
+    const popularImages = await mediaPopularAsync();
+    const myRecentMedia = await userSelfMediaRecentAsync();
+    return res.render('api/instagram', {
+      title: 'Instagram API',
+      usernames: searchByUsername,
+      userById: searchByUserId,
+      popularImages,
+      myRecentMedia
+    });
+  } catch (error) {
+    return next(error);
+  }
 };
 
 /**
