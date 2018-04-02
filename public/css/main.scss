@@ -1,12 +1,12 @@
-@import "themes/default/variables";
+// @import "themes/default/variables";
 
-@import "lib/bootstrap/bootstrap";
+// @import "lib/bootstrap/bootstrap";
 @import "lib/font-awesome/fontawesome";
 @import "lib/font-awesome/fa-brands";
 @import "lib/font-awesome/fa-regular";
 @import "lib/font-awesome/fa-solid";
 
-@import "themes/default/default";
+// @import "themes/default/default";
 
 // Scaffolding
 // -------------------------
@@ -17,7 +17,6 @@ html {
 }
 
 body {
-  padding-top: 60px;
   margin-bottom: 75px;
 }
 
@@ -42,6 +41,12 @@ textarea {
 
 // Navbar
 // -------------------------
+
+.navbar-default {
+    border: 0;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.2);
+    margin-bottom: 25px;
+}
 
 .navbar-nav img {
   width: 30px;
